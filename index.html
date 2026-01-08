@@ -5,6 +5,11 @@
 <title>Cash Manager PRO</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f172a">
+<link rel="apple-touch-icon" href="icon-192.png">
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
@@ -19,17 +24,12 @@ button.admin{background:#dc2626}
 button.logout{background:#6b7280}
 table{width:100%;border-collapse:collapse;margin-top:10px}
 th,td{border:1px solid #ccc;padding:6px;text-align:center}
-
-@media print{
- body{width:80mm}
- .no-print{display:none}
-}
+@media print{body{width:80mm}.no-print{display:none}}
 </style>
 </head>
 
 <body>
 
-<!-- HEADER -->
 <header>
 <div>
 <img id="logoHeader"><br>
@@ -42,7 +42,6 @@ th,td{border:1px solid #ccc;padding:6px;text-align:center}
 
 <div class="container no-print">
 
-<!-- LOGIN -->
 <div class="card" id="loginCard">
 <h3>Connexion</h3>
 <input id="user" placeholder="Utilisateur">
@@ -50,7 +49,6 @@ th,td{border:1px solid #ccc;padding:6px;text-align:center}
 <button onclick="login()">Connexion</button>
 </div>
 
-<!-- ADMIN -->
 <div class="card hidden" id="adminZone">
 <h3>👑 Administration</h3>
 
@@ -80,7 +78,6 @@ th,td{border:1px solid #ccc;padding:6px;text-align:center}
 <button class="admin" onclick="resetAll()">⚠️ RESET (ESSAI)</button>
 </div>
 
-<!-- TRANSACTION -->
 <div class="card hidden" id="transactionZone">
 <h3>Transaction</h3>
 <input id="client" placeholder="Nom client">
@@ -91,15 +88,12 @@ th,td{border:1px solid #ccc;padding:6px;text-align:center}
 <button onclick="addTransaction()">Valider + Imprimer</button>
 </div>
 
-<!-- SOLDES -->
 <div class="card hidden" id="balanceZone">
 <p>Moncash : <b id="m">0</b></p>
 <p>Natcash : <b id="n">0</b></p>
 </div>
 
-<!-- RAPPORT -->
 <div class="card hidden" id="reportZone">
-
 <div style="display:flex;gap:10px;margin-bottom:10px">
 <button onclick="printJournal()">🖨️ Imprimer journal</button>
 <button onclick="exportCSV()">⬇️ Télécharger journal</button>
@@ -108,23 +102,15 @@ th,td{border:1px solid #ccc;padding:6px;text-align:center}
 <table>
 <thead>
 <tr>
-<th>ID</th>
-<th>Date</th>
-<th>Client</th>
-<th>Téléphone</th>
-<th>Service</th>
-<th>Type</th>
-<th>Montant</th>
-<th>Caissier</th>
+<th>ID</th><th>Date</th><th>Client</th><th>Téléphone</th>
+<th>Service</th><th>Type</th><th>Montant</th><th>Caissier</th>
 </tr>
 </thead>
 <tbody id="history"></tbody>
 </table>
 </div>
-
 </div>
 
-<!-- TICKET -->
 <div id="ticket" class="hidden">
 <center>
 <img id="logoTicket" height="35"><br>
@@ -145,28 +131,17 @@ th,td{border:1px solid #ccc;padding:6px;text-align:center}
 </div>
 
 <script>
-/* UTIL */
-function hash(str){
- let h=0;
- for(let i=0;i<str.length;i++){
-  h=(h<<5)-h+str.charCodeAt(i);
-  h|=0;
- }
- return h.toString();
-}
+/* ===== UTIL ===== */
+function hash(s){let h=0;for(let i=0;i<s.length;i++){h=(h<<5)-h+s.charCodeAt(i);h|=0;}return h+"";}
+function nowDate(){return new Date().toISOString().slice(0,16).replace("T"," ");}
 
-function nowDate(){
- const d=new Date();
- return d.toISOString().slice(0,16).replace("T"," ");
-}
-
-/* LICENCE */
+/* ===== LICENCE ===== */
 const ACTIVATION_CODE="CMPRO-6M-2026";
 const CONTACT="📞 509 3778-11-06\n✉️ lucienhyppolite7@gmail.com";
 const SIX_MONTHS=180*24*60*60*1000;
 const WARNING=5*24*60*60*1000;
 
-/* STORAGE */
+/* ===== STORAGE ===== */
 let store=JSON.parse(localStorage.getItem("store"))||{
  installDate:Date.now(),
  activated:false,
@@ -174,96 +149,65 @@ let store=JSON.parse(localStorage.getItem("store"))||{
  users:{},
  data:{Moncash:0,Natcash:0,history:[],counter:0}
 };
-
 let currentUser=null;
 const save=()=>localStorage.setItem("store",JSON.stringify(store));
 
-/* LICENCE CHECK */
 function checkLicence(){
- const now=Date.now();
- const end=store.installDate+SIX_MONTHS;
- if(now>=end-WARNING && now<end) alert("⚠️ Licence bientôt expirée\n"+CONTACT);
- if(now>=end && !store.activated){
-  const code=prompt("Licence expirée.\nEntrez code d’activation :");
-  if(code===ACTIVATION_CODE){store.activated=true;save();}
-  else{alert("Logiciel bloqué\n"+CONTACT);throw "BLOCKED";}
+ const now=Date.now(),end=store.installDate+SIX_MONTHS;
+ if(now>=end-WARNING&&now<end)alert("⚠️ Licence bientôt expirée\n\n"+CONTACT);
+ if(now>=end&&!store.activated){
+  const c=prompt("⛔ LICENCE EXPIRÉE ⛔\n\nCode d’activation :");
+  if(c===ACTIVATION_CODE){store.activated=true;save();alert("✅ Licence activée");}
+  else{alert("🚫 Application bloquée\n\n"+CONTACT);throw"BLOCKED";}
  }
 }
 
-/* INIT */
+/* ===== INIT ===== */
 (function(){
  checkLicence();
- if(!store.users.admin){
-  store.users.admin={pass:hash("admin123")};
-  save();
- }
- applyCompany();
- updateAll();
+ if(!store.users.admin){store.users.admin={pass:hash("admin123")};save();}
+ applyCompany();updateAll();
 })();
 
-/* COMPANY */
+/* ===== COMPANY ===== */
 function applyCompany(){
  companyHeader.innerText=companyTicket.innerText=store.company.name;
  companyAddress.innerText=ticketAddress.innerText=store.company.address;
  companyPhone.innerText=ticketPhone.innerText=store.company.phone;
  logoHeader.src=logoTicket.src=store.company.logo;
 }
-
 function saveCompany(){
- store.company={
-  name:companyName.value,
-  address:companyAddressInput.value,
-  phone:companyPhoneInput.value,
-  logo:companyLogo.value
- };
+ store.company={name:companyName.value,address:companyAddressInput.value,phone:companyPhoneInput.value,logo:companyLogo.value};
  applyCompany();save();
 }
 
-/* LOGIN */
+/* ===== LOGIN ===== */
 function login(){
  checkLicence();
- const u=user.value.trim();
- const p=hash(pass.value.trim());
- if(!store.users[u]||store.users[u].pass!==p) return alert("Identifiants incorrects");
+ const u=user.value.trim(),p=hash(pass.value.trim());
+ if(!store.users[u]||store.users[u].pass!==p)return alert("Identifiants incorrects");
  currentUser=u;
  loginCard.classList.add("hidden");
  logoutBtn.classList.remove("hidden");
  transactionZone.classList.remove("hidden");
  balanceZone.classList.remove("hidden");
  reportZone.classList.remove("hidden");
- if(u==="admin") adminZone.classList.remove("hidden");
+ if(u==="admin")adminZone.classList.remove("hidden");
 }
-
 function logout(){location.reload();}
 
-/* TRANSACTION */
+/* ===== TRANSACTION ===== */
 function addTransaction(){
- const a=Number(amount.value);
- const s=service.value;
- const t=type.value;
- if(t==="retrait" && a>store.data[s]) return alert("Solde insuffisant");
-
+ const a=Number(amount.value),s=service.value,t=type.value;
+ if(t==="retrait"&&a>store.data[s])return alert("Solde insuffisant");
  store.data.counter++;
  store.data[s]+=t==="depot"?a:-a;
-
- const tr={
-  id:"TX-"+store.data.counter,
-  date:nowDate(),
-  client:client.value,
-  phone:clientPhone.value,
-  service:s,
-  type:t,
-  amount:a,
-  user:currentUser
- };
-
+ const tr={id:"TX-"+store.data.counter,date:nowDate(),client:client.value,phone:clientPhone.value,service:s,type:t,amount:a,user:currentUser};
  store.data.history.push(tr);
- save();
- printTicket(tr);
- updateAll();
+ save();printTicket(tr);updateAll();
 }
 
-/* TICKET */
+/* ===== TICKET ===== */
 function printTicket(x){
  tDate.innerText="Date : "+x.date;
  t0.innerText="Transaction : "+x.id;
@@ -277,63 +221,64 @@ function printTicket(x){
  ticket.classList.add("hidden");
 }
 
-/* JOURNAL */
+/* ===== JOURNAL (CORRIGÉ) ===== */
 function printJournal(){
- let html=`
- <center>
- <img src="${store.company.logo}" height="35"><br>
- <b>${store.company.name}</b><br>
- <small>${store.company.address}</small><br>
- <small>${store.company.phone}</small>
- </center><hr>`;
-
+ let html=`<center><b>${store.company.name}</b><br><small>${store.company.address}</small><br><small>${store.company.phone}</small></center><hr>`;
  store.data.history.forEach(x=>{
-  html+=`
-  <p>
-  <b>${x.id}</b><br>
-  Date : ${x.date}<br>
-  ${x.client} (${x.phone})<br>
-  ${x.service} - ${x.type}<br>
-  Montant : ${x.amount}<br>
-  Caissier : ${x.user}
-  </p><hr>`;
+  html+=`<p><b>${x.id}</b><br>${x.date}<br>${x.client} ${x.phone}<br>${x.service} ${x.type}<br>Montant: ${x.amount}<br>Caissier: ${x.user}</p><hr>`;
  });
-
- const w=window.open("","","width=300");
+ const w=window.open("","_blank","width=320");
  w.document.write(`<html><body style="font-family:Arial;width:80mm">${html}</body></html>`);
- w.print();w.close();
+ w.document.close();
+ w.focus();
+ setTimeout(()=>{w.print();w.close();},500);
 }
 
-/* RAPPORT */
+/* ===== RAPPORT ===== */
 function updateAll(){
  m.innerText=store.data.Moncash;
  n.innerText=store.data.Natcash;
  history.innerHTML="";
  store.data.history.forEach(x=>{
-  history.innerHTML+=`
-  <tr>
-  <td>${x.id}</td>
-  <td>${x.date}</td>
-  <td>${x.client}</td>
-  <td>${x.phone}</td>
-  <td>${x.service}</td>
-  <td>${x.type}</td>
-  <td>${x.amount}</td>
-  <td>${x.user}</td>
-  </tr>`;
+  history.innerHTML+=`<tr><td>${x.id}</td><td>${x.date}</td><td>${x.client}</td><td>${x.phone}</td><td>${x.service}</td><td>${x.type}</td><td>${x.amount}</td><td>${x.user}</td></tr>`;
  });
 }
 
-/* EXPORT CSV */
+/* ===== ADMIN ===== */
+function adjustBalance(){
+ const s=adjService.value,a=Number(adjAmount.value);
+ if(!a)return alert("Montant invalide");
+ store.data[s]+=a;
+ store.data.history.push({id:"ADJ-"+(++store.data.counter),date:nowDate(),client:"AJUSTEMENT",phone:"",service:s,type:"ajustement",amount:a,user:currentUser});
+ adjAmount.value="";save();updateAll();alert("Ajustement appliqué");
+}
+function resetAll(){
+ if(!confirm("⚠️ Confirmer la réinitialisation totale ?"))return;
+ store.data={Moncash:0,Natcash:0,history:[],counter:0};
+ save();updateAll();alert("RESET effectué");
+}
+function addCashier(){
+ const u=newUser.value.trim(),p=newPass.value.trim();
+ if(!u||!p)return alert("Champs requis");
+ if(store.users[u])return alert("Utilisateur existe");
+ store.users[u]={pass:hash(p)};
+ newUser.value="";newPass.value="";
+ save();alert("Caissier ajouté");
+}
+
+/* ===== EXPORT ===== */
 function exportCSV(){
  let csv="ID,Date,Client,Telephone,Service,Type,Montant,Caissier\n";
- store.data.history.forEach(x=>{
-  csv+=`${x.id},${x.date},${x.client},${x.phone},${x.service},${x.type},${x.amount},${x.user}\n`;
- });
+ store.data.history.forEach(x=>csv+=`${x.id},${x.date},${x.client},${x.phone},${x.service},${x.type},${x.amount},${x.user}\n`);
  const a=document.createElement("a");
  a.href=URL.createObjectURL(new Blob([csv]));
- a.download="journal_transactions.csv";
+ a.download="journal.csv";
  a.click();
+}
+
+/* ===== SERVICE WORKER ===== */
+if("serviceWorker"in navigator){
+ navigator.serviceWorker.register("sw.js");
 }
 </script>
 
